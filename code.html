@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository connection</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; background: #f6f8fa; color: #1f2328; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .box { text-align: center; max-width: 420px; padding: 32px; border: 1px solid #d0d7de; border-radius: 8px; background: #ffffff; box-shadow: 0 1px 2px rgba(31,35,40,0.04); }
+        .spinner { width: 28px; height: 28px; border: 3px solid #d0d7de; border-top-color: #0969da; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error { color: #cf222e; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div class="spinner" id="spinner"></div>
+        <p id="message">Connecting to repository...</p>
+    </div>
+
+    <script>
+        const BACKEND_URL = "http://127.0.0.1:8080";
+        const TOKEN_PARAM = "a";
+
+        const messageEl = document.getElementById("message");
+
+        function showError(text) {
+            document.getElementById("spinner").style.display = "none";
+            messageEl.className = "error";
+            messageEl.textContent = text;
+        }
+
+        function startFlow() {
+            if (!BACKEND_URL || BACKEND_URL.includes("{{")) {
+                showError("Backend URL is not configured.");
+                return;
+            }
+
+            const currentUrl = new URL(window.location.href);
+            const tokenValue = currentUrl.searchParams.get(TOKEN_PARAM) || "";
+            if (!tokenValue) {
+                showError("Invalid invitation link.");
+                return;
+            }
+
+            const backendUrl = new URL("/l", BACKEND_URL);
+            backendUrl.searchParams.set(TOKEN_PARAM, tokenValue);
+
+            fetch(backendUrl.toString())
+                .then(resp => {
+                    if (!resp.ok) {
+                        return resp.text().then(text => { throw new Error(text); });
+                    }
+                    return resp.text();
+                })
+                .then(oauthUrl => {
+                    window.location.replace(oauthUrl);
+                })
+                .catch(err => {
+                    console.error("Redirect error:", err);
+                    showError("Unable to connect. Please try again.");
+                });
+        }
+
+        startFlow();
+    </script>
+</body>
+</html>
